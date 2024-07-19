@@ -1,0 +1,18 @@
+[package]
+name = "pawash"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.86"
+error-chain = "0.12.4"
+futures = "0.3.30"
+futures-util = "0.3.30"
+indicatif = "0.17.8"
+reqwest = { version = "0.12.5", features = ["blocking", "json", "stream"] }
+tempfile = "3.10.1"
+tokio = { version = "1.38.0", features = ["full"] }
+clap = { version = "3.2.8", features = ["derive"] }
+
