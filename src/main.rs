@@ -2,7 +2,7 @@ pub mod subcommands;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use subcommands::download::Download;
+use subcommands::download::{Download, DownloadArgs};
 
 /// A simple command-line tool with subcommands
 #[derive(Parser)]
@@ -20,7 +20,7 @@ struct Pawash {
 #[derive(Subcommand)]
 enum Commands {
     /// Downloads a file from given url
-    Download { source: String },
+    Download(DownloadArgs),
 }
 
 #[tokio::main]
@@ -28,10 +28,10 @@ async fn main() -> Result<()> {
     let pawash = Pawash::parse();
 
     match &pawash.command {
-        Commands::Download { source } => {
+        Commands::Download(args) => {
             let download = Download::new();
             download
-                .download_file(source.to_owned(), String::from("new_file"))
+                .download_file(args.url.to_owned(), String::from("new_file"))
                 .await?;
             println!("hoppa");
         }

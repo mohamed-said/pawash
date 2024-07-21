@@ -9,9 +9,17 @@ use reqwest::{Client, Response};
 use std::cmp::min;
 use std::fs::File;
 use std::io::Write;
+use clap::Args;
 
 pub struct Download {
     client: Client,
+}
+
+// TODO make the path configurable as an argument
+#[derive(Args)]
+pub struct DownloadArgs {
+    /// url of the file to download
+    pub url: String,
 }
 
 impl Download {
@@ -41,6 +49,7 @@ impl Download {
 
         Ok(pb)
     }
+
     async fn get_file(&self, url: &str) -> Result<Response> {
         // Reqwest setup
         self.client
@@ -56,7 +65,7 @@ impl Download {
         let total_size = response.content_length().context(format!(
             "Failed to get content length from '{}'",
             url.clone()
-        ))?;
+       ))?;
 
         // create progress bar
         let progress_bar = self.build_progress_bar(total_size)?;
