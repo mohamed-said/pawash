@@ -1,5 +1,5 @@
 ## Features
-- Downloader
+- Downloader &#x2705;
 - Yaml purifier
 - Zipper
 - pertoav (percentaege to availability. e.g. 99% is down 3.8 days/year)
