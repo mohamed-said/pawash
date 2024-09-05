@@ -2,6 +2,7 @@ pub mod subcommands;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use subcommands::compression::{Compress, CompressArgs};
 use subcommands::download::{Download, DownloadArgs};
 
 /// A simple command-line tool with subcommands
@@ -21,6 +22,7 @@ struct Pawash {
 enum Commands {
     /// Downloads a file from given url
     Download(DownloadArgs),
+    Compress(CompressArgs),
 }
 
 #[tokio::main]
@@ -34,6 +36,13 @@ async fn main() -> Result<()> {
                 .download_file(args.url.to_owned(), String::from("new_file"))
                 .await?;
             println!("hoppa");
+        }
+        Commands::Compress(args) => {
+            Compress::compress(
+                args.archive_dest.to_string(),
+                args.archive_name.to_string(),
+                args.files.to_owned(),
+            )?;
         }
     }
 

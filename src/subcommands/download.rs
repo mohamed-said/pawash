@@ -3,13 +3,13 @@
 // better path handling (using Path or PathBuf)
 
 use anyhow::{Context, Result};
+use clap::Args;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::{Client, Response};
 use std::cmp::min;
 use std::fs::File;
 use std::io::Write;
-use clap::Args;
 
 pub struct Download {
     client: Client,
@@ -65,7 +65,7 @@ impl Download {
         let total_size = response.content_length().context(format!(
             "Failed to get content length from '{}'",
             url.clone()
-       ))?;
+        ))?;
 
         // create progress bar
         let progress_bar = self.build_progress_bar(total_size)?;
