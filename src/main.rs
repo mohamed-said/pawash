@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
             Compress::compress(
                 args.archive_dest.to_string(),
                 args.archive_name.to_string(),
-                args.files.to_owned(),
+                args.src_dir.to_owned(),
             )?;
         }
     }
