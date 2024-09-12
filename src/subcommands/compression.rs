@@ -1,5 +1,5 @@
 use std::{
-    fs::{DirEntry, File},
+    fs::File,
     io::{Read, Write},
     path::{Path, PathBuf},
 };
@@ -7,7 +7,7 @@ use std::{
 use anyhow::{Context, Result};
 use clap::Args;
 use thiserror::Error;
-use walkdir::WalkDir;
+use walkdir::{DirEntry, WalkDir};
 use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
 
 #[derive(Debug, Error)]
@@ -24,7 +24,8 @@ pub struct Compress;
 pub struct CompressArgs {
     pub archive_name: String,
     pub archive_dest: String,
-    pub method: String,
+    // TODO enable an argument and support defaults
+    //pub method: String,
     pub src_dir: String,
 }
 
@@ -51,36 +52,23 @@ impl Compress {
         Ok(())
     }
 
-    fn do_compress(
-        src_dir: &Path,
-        dst_file: &Path,
-        options: SimpleFileOptions,
-    ) -> Result<()> {
-        // TODO consider moving the creation of walkdir to the compress function
-        let dir_to_compress = Path::new(&src_dir);
-        let walk_dir = WalkDir::new(dir_to_compress);
-        let entry_iter = walk_dir.into_iter().filter_map(|entry| entry.ok());
-
+    fn do_compress(it: &mut dyn Iterator<Item = DirEntry>, src_dir: &Path, dst_file: &Path, options: SimpleFileOptions) -> Result<()> {
         let zip_file = File::create(&dst_file)?;
         let mut zip_archive = ZipWriter::new(zip_file);
 
         let mut buffer = vec![];
-        for entry in entry_iter {
+        for entry in it {
             let path = entry.path();
             let name = path.strip_prefix(src_dir)?;
-            let path_as_string = name
+            let path_string = name
                 .to_str()
                 .map(str::to_owned)
                 .with_context(|| format!("{name:?} Is a Non UTF-8 Path"))?;
 
             if path.is_file() {
                 println!("adding file {path:?} as {name:?} ...");
-                zip_archive.start_file(path_as_string, options)?;
+                zip_archive.start_file(path_string, options)?;
                 let mut file = File::open(path)?;
-
-                // TODO consider using this to allocate the buffer vector maybe?
-                // could make the reading more efficient
-                //let file_len = file.metadata().unwrap().len();
 
                 file.read_to_end(&mut buffer)?;
                 zip_archive.write_all(&buffer)?;
@@ -88,8 +76,8 @@ impl Compress {
             } else if !name.as_os_str().is_empty() {
                 // Only if not root! Avoids path spec / warning
                 // and mapname conversion failed error on unzip
-                println!("adding dir {path_as_string:?} as {name:?} ...");
-                zip_archive.add_directory(path_as_string, options)?;
+                println!("adding dir {path_string:?} as {name:?} ...");
+                zip_archive.add_directory(path_string, options)?;
             }
         }
 
@@ -106,14 +94,18 @@ impl Compress {
         Self::validate_path(&archive_path)?;
 
         let dst_archive_full_path = format!("{}{}", archive_path, archive_name);
-        println!("archive_path: {dst_archive_full_path}");
         let dst_archive_full_path = Path::new(&dst_archive_full_path);
 
         let src_dir = Path::new(&src_dir);
 
         // TODO consider making this an argument
         let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
-        Self::do_compress(src_dir, dst_archive_full_path, options)?;
+
+        let dir_to_compress = Path::new(&src_dir);
+        let walk_dir = WalkDir::new(dir_to_compress);
+        let mut entry_iter = walk_dir.into_iter().filter_map(|entry| entry.ok());
+
+        Self::do_compress(&mut entry_iter, dir_to_compress, dst_archive_full_path, options)?;
 
         Ok(())
     }
