@@ -1,7 +1,5 @@
 use std::{
-    fs::File,
-    io::{Read, Write},
-    path::{Path, PathBuf},
+    borrow::Cow, fs::File, io::{Read, Write}, path::{Path, PathBuf}
 };
 
 use anyhow::{Context, Result};
@@ -16,6 +14,8 @@ enum CompressError {
     ArchiveNameTooLong,
     #[error("Destination path is not found!")]
     DestinationPathNotFound,
+    #[error("Destination is not a directory!")]
+    NotADirectory,
 }
 
 pub struct Compress;
@@ -30,24 +30,27 @@ pub struct CompressArgs {
 }
 
 impl Compress {
-    fn validate_path(dir: &String) -> Result<bool> {
-        let mut dir = PathBuf::from(dir);
-        if !dir.ends_with("/") {
-            dir.push("/");
-        }
-        let path = Path::new(&dir);
 
-        match path.try_exists() {
-            Ok(true) => Ok(true),
-            Ok(false) => Err(CompressError::DestinationPathNotFound.into()),
-            Err(e) => Err(e.into()),
-        }
-    }
+    pub fn compress(archive_path: String, archive_name: String, src_dir: String) -> Result<()> {
+        let archive_name = Self::validate_name(&archive_name)?;
 
-    fn validate_name(archive_name: &String) -> Result<()> {
-        if archive_name.len() > 100 {
-            return Err(CompressError::ArchiveNameTooLong.into());
-        }
+        // validate src_dir path
+        let src_dir = Self::validate_path(&src_dir)?;
+
+        // validate destination path for archive
+        let mut archive_path = Self::validate_path(&archive_path)?;
+        archive_path.push(archive_name.as_str());
+
+        let src_dir = Path::new(&src_dir);
+
+        // TODO consider making this an argument
+        let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
+
+        let dir_to_compress = Path::new(&src_dir);
+        let walk_dir = WalkDir::new(dir_to_compress);
+        let mut entry_iter = walk_dir.into_iter().filter_map(|entry| entry.ok());
+
+        Self::do_compress(&mut entry_iter, dir_to_compress, archive_path.as_path(), options)?;
 
         Ok(())
     }
@@ -84,29 +87,33 @@ impl Compress {
         zip_archive.finish()?;
         Ok(())
     }
-    pub fn compress(archive_path: String, archive_name: String, src_dir: String) -> Result<()> {
-        Self::validate_name(&archive_name)?;
 
-        // validate src_dir path
-        Self::validate_path(&src_dir)?;
+    fn validate_path(dir: &String) -> Result<PathBuf> {
+        let mut path = PathBuf::from(dir);
+        if let Ok(canonical_path) = std::fs::canonicalize(&path) {
+            path = canonical_path;
+            if !path.is_dir() {
+                return Err(CompressError::NotADirectory.into());
+            }
+        } else {
+            return Err(CompressError::DestinationPathNotFound.into());
+        }
 
-        // validate destination path for archive
-        Self::validate_path(&archive_path)?;
+        Ok(path)
+    }
 
-        let dst_archive_full_path = format!("{}{}", archive_path, archive_name);
-        let dst_archive_full_path = Path::new(&dst_archive_full_path);
+    fn validate_name<'a>(archive_name: &'a String) -> Result<Cow<'a, String>> {
+        if archive_name.len() > 100 {
+            return Err(CompressError::ArchiveNameTooLong.into());
+        }
 
-        let src_dir = Path::new(&src_dir);
+        if !archive_name.ends_with(".zip") {
+            let mut name = String::with_capacity(archive_name.len() + 4);
+            name.push_str(archive_name);
+            name.push_str(".zip");
+            return Ok(Cow::Owned(name));
+        }
 
-        // TODO consider making this an argument
-        let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
-
-        let dir_to_compress = Path::new(&src_dir);
-        let walk_dir = WalkDir::new(dir_to_compress);
-        let mut entry_iter = walk_dir.into_iter().filter_map(|entry| entry.ok());
-
-        Self::do_compress(&mut entry_iter, dir_to_compress, dst_archive_full_path, options)?;
-
-        Ok(())
+        Ok(Cow::Borrowed(archive_name))
     }
 }
