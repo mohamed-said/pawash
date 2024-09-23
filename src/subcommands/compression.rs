@@ -34,13 +34,13 @@ pub struct CompressArgs {
 
 impl Compress {
     pub fn compress(archive_path: &str, archive_name: &str, src_dir: &str) -> Result<()> {
-        let archive_name = Self::validate_name(&archive_name)?;
+        let archive_name = Self::validate_name(archive_name)?;
 
         // validate src_dir path
-        let src_dir = Self::validate_path(&src_dir)?;
+        let src_dir = Self::validate_path(src_dir)?;
 
         // validate destination path for archive
-        let mut archive_path = Self::validate_path(&archive_path)?;
+        let mut archive_path = Self::validate_path(archive_path)?;
         archive_path.push(archive_name.into_owned());
 
         let src_dir = Path::new(&src_dir);
@@ -68,7 +68,7 @@ impl Compress {
         dst_file: &Path,
         options: SimpleFileOptions,
     ) -> Result<()> {
-        let zip_file = File::create(&dst_file)?;
+        let zip_file = File::create(dst_file)?;
         let mut zip_archive = ZipWriter::new(zip_file);
 
         let mut buffer = vec![];
@@ -114,7 +114,7 @@ impl Compress {
         Ok(path)
     }
 
-    fn validate_name<'a>(archive_name: &'a str) -> Result<Cow<'a, str>> {
+    fn validate_name(archive_name: &str) -> Result<Cow<'_, str>> {
         if archive_name.len() > 100 {
             return Err(CompressError::ArchiveNameTooLong.into());
         }
