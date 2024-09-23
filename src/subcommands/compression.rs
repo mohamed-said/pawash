@@ -1,5 +1,8 @@
 use std::{
-    borrow::Cow, fs::File, io::{Read, Write}, path::{Path, PathBuf}
+    borrow::Cow,
+    fs::File,
+    io::{Read, Write},
+    path::{Path, PathBuf},
 };
 
 use anyhow::{Context, Result};
@@ -30,8 +33,7 @@ pub struct CompressArgs {
 }
 
 impl Compress {
-
-    pub fn compress(archive_path: String, archive_name: String, src_dir: String) -> Result<()> {
+    pub fn compress(archive_path: &str, archive_name: &str, src_dir: &str) -> Result<()> {
         let archive_name = Self::validate_name(&archive_name)?;
 
         // validate src_dir path
@@ -39,7 +41,7 @@ impl Compress {
 
         // validate destination path for archive
         let mut archive_path = Self::validate_path(&archive_path)?;
-        archive_path.push(archive_name.as_str());
+        archive_path.push(archive_name.into_owned());
 
         let src_dir = Path::new(&src_dir);
 
@@ -50,12 +52,22 @@ impl Compress {
         let walk_dir = WalkDir::new(dir_to_compress);
         let mut entry_iter = walk_dir.into_iter().filter_map(|entry| entry.ok());
 
-        Self::do_compress(&mut entry_iter, dir_to_compress, archive_path.as_path(), options)?;
+        Self::do_compress(
+            &mut entry_iter,
+            dir_to_compress,
+            archive_path.as_path(),
+            options,
+        )?;
 
         Ok(())
     }
 
-    fn do_compress(it: &mut dyn Iterator<Item = DirEntry>, src_dir: &Path, dst_file: &Path, options: SimpleFileOptions) -> Result<()> {
+    fn do_compress(
+        it: &mut dyn Iterator<Item = DirEntry>,
+        src_dir: &Path,
+        dst_file: &Path,
+        options: SimpleFileOptions,
+    ) -> Result<()> {
         let zip_file = File::create(&dst_file)?;
         let mut zip_archive = ZipWriter::new(zip_file);
 
@@ -88,7 +100,7 @@ impl Compress {
         Ok(())
     }
 
-    fn validate_path(dir: &String) -> Result<PathBuf> {
+    fn validate_path(dir: &str) -> Result<PathBuf> {
         let mut path = PathBuf::from(dir);
         if let Ok(canonical_path) = std::fs::canonicalize(&path) {
             path = canonical_path;
@@ -102,7 +114,7 @@ impl Compress {
         Ok(path)
     }
 
-    fn validate_name<'a>(archive_name: &'a String) -> Result<Cow<'a, String>> {
+    fn validate_name<'a>(archive_name: &'a str) -> Result<Cow<'a, str>> {
         if archive_name.len() > 100 {
             return Err(CompressError::ArchiveNameTooLong.into());
         }

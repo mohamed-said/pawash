@@ -38,11 +38,7 @@ async fn main() -> Result<()> {
             println!("hoppa");
         }
         Commands::Compress(args) => {
-            Compress::compress(
-                args.archive_dest.to_string(),
-                args.archive_name.to_string(),
-                args.src_dir.to_owned(),
-            )?;
+            Compress::compress(&args.archive_dest, &args.archive_name, &args.src_dir)?;
         }
     }
 
