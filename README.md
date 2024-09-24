@@ -1,7 +1,7 @@
 ## Features
 - Downloader &#x2705;
 - Yaml purifier
-- Zipper
+- Zipper &#x2705;
 - pertoav (percentaege to availability. e.g. 99% is down 3.8 days/year)
 - isleap
 - pathlist (list locations in the path)
